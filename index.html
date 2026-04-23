@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meal Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream: #F7F4EF; --parchment: #EDE8DF; --ink: #1C1A16; --ink-soft: #4A4640;
+  --ink-muted: #8C887F; --accent: #2D6A4F; --accent-light: #D8EDE4; --accent-mid: #52976E;
+  --warm: #C4703A; --warm-light: #F5E6D8; --blue: #2C5282; --blue-light: #DAE6F5;
+  --border: #D8D3C8; --white: #FDFCFA;
+  --this-week: #2C5282; --this-week-light: #DAE6F5; --this-week-mid: #4A7FB5;
+  --next-week: #5B3A8C; --next-week-light: #EDE4F8; --next-week-mid: #8B68C4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--cream);color:var(--ink);min-height:100vh;font-size:15px;line-height:1.6}
+
+/* NAV */
+nav{background:var(--ink);padding:0 1rem;display:flex;align-items:center;position:sticky;top:0;z-index:200;gap:0}
+.nav-brand{font-family:'DM Serif Display',serif;color:var(--cream);font-size:17px;padding:14px 0;margin-right:auto;letter-spacing:.01em;white-space:nowrap}
+.nav-brand span{color:var(--accent-mid)}
+.nav-tab{color:var(--ink-muted);background:none;border:none;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;padding:18px 12px;cursor:pointer;transition:color .15s;border-bottom:2px solid transparent;white-space:nowrap}
+.nav-tab:hover{color:var(--cream)}
+.nav-tab.active{color:var(--cream);border-bottom-color:var(--accent-mid)}
+.nav-gear{background:none;border:none;color:var(--ink-muted);font-size:18px;padding:14px 8px;cursor:pointer;margin-left:4px;transition:color .15s}
+.nav-gear:hover{color:var(--cream)}
+
+/* SECTIONS */
+.section{display:none;padding:2rem 1.25rem;max-width:1100px;margin:0 auto}
+.section.active{display:block}
+
+/* PAGE HEADER */
+.page-header{margin-bottom:1.5rem}
+.page-header h1{font-family:'DM Serif Display',serif;font-size:28px;font-weight:400;color:var(--ink);line-height:1.2;margin-bottom:4px}
+.page-header p{color:var(--ink-muted);font-size:13px}
+
+/* WEEK BADGE */
+.week-badge{display:inline-flex;align-items:center;gap:7px;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:500;margin-bottom:1rem}
+.week-badge.this{background:var(--this-week-light);color:var(--this-week)}
+.week-badge.next{background:var(--next-week-light);color:var(--next-week)}
+
+/* PLAN TAB SWITCHER */
+.plan-week-tabs{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap}
+.plan-week-tab{padding:8px 18px;border-radius:6px;border:1px solid var(--border);background:var(--white);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;color:var(--ink-soft)}
+.plan-week-tab.active-this{background:var(--this-week);color:white;border-color:var(--this-week)}
+.plan-week-tab.active-next{background:var(--next-week);color:white;border-color:var(--next-week)}
+
+/* DAY BLOCKS */
+.day-block{margin-bottom:7px;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.day-header{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--parchment);cursor:pointer;user-select:none;border-bottom:1px solid var(--border)}
+.day-header:hover{background:var(--border)}
+.day-block.collapsed .day-header{border-bottom:none}
+.day-name-label{font-weight:500;font-size:14px;color:var(--ink);min-width:34px}
+.day-tag-pill{font-size:11px;font-weight:500;padding:2px 9px;border-radius:20px;letter-spacing:.03em}
+.pill-prep{background:var(--blue-light);color:var(--blue)}
+.pill-leftovers{background:var(--parchment);color:var(--ink-muted);border:1px solid var(--border)}
+.day-locked-icon{margin-left:auto;font-size:13px;cursor:pointer;opacity:.5;transition:opacity .15s;padding:2px 6px;border-radius:4px;border:none;background:none}
+.day-locked-icon:hover{opacity:1}
+.day-locked-icon.locked{opacity:1;color:var(--warm)}
+.day-chevron{font-size:11px;color:var(--ink-muted);transition:transform .2s;margin-left:4px}
+.day-block.collapsed .day-chevron{transform:rotate(-90deg)}
+.day-meals{background:var(--white)}
+.day-block.collapsed .day-meals{display:none}
+.meal-row{display:flex;align-items:center;border-bottom:1px solid var(--parchment)}
+.meal-row:last-child{border-bottom:none}
+.meal-type-col{width:80px;flex-shrink:0;padding:11px 12px;font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);border-right:1px solid var(--parchment)}
+.meal-name-col{flex:1;padding:11px 14px;font-size:13px;font-weight:500;color:var(--ink)}
+.meal-macro-col{width:120px;flex-shrink:0;padding:11px 12px;border-left:1px solid var(--parchment);font-size:12px;line-height:1.7}
+.meal-row.oneoff .meal-name-col::before{content:'✦ ';color:var(--warm);font-size:11px}
+.leftover-label{color:var(--ink-muted);font-style:italic;font-weight:400}
+.mc{color:var(--this-week);font-weight:500}
+.mf{color:var(--warm);font-weight:500}
+.mp{color:var(--accent);font-weight:500}
+.mc-hi{color:#C05621;font-weight:500}
+
+/* NEXT WEEK ACTIONS */
+.next-week-actions{display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;align-items:center}
+.btn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:8px 16px;border-radius:6px;cursor:pointer;transition:all .15s;border:1px solid var(--border);background:var(--white);color:var(--ink-soft)}
+.btn:hover{background:var(--parchment)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:var(--ink);border-color:var(--ink);color:white}
+.btn-primary:hover{background:var(--ink-soft)}
+.btn-save{background:var(--next-week);border-color:var(--next-week);color:white}
+.btn-save:hover{background:#4a2f75}
+.btn-push{background:var(--accent);border-color:var(--accent);color:white}
+.btn-push:hover{background:#245f44}
+.btn-danger{background:#A32D2D;border-color:#A32D2D;color:white}
+.btn-danger:hover{background:#8B2020}
+.save-status{font-size:12px;color:var(--ink-muted);display:flex;align-items:center;gap:6px;margin-left:auto}
+.save-dot{width:7px;height:7px;border-radius:50%;background:var(--border)}
+.save-dot.saved{background:var(--accent-mid)}
+
+/* CHAT */
+.chat-wrap{margin-top:1.5rem;border:1px solid var(--border);border-radius:12px;overflow:hidden;background:var(--white)}
+.chat-header{background:var(--parchment);padding:10px 16px;font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.chat-messages{min-height:180px;max-height:360px;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.chat-msg{display:flex;gap:8px;align-items:flex-start}
+.chat-msg.user{flex-direction:row-reverse}
+.chat-bubble{max-width:85%;padding:9px 13px;border-radius:10px;font-size:13px;line-height:1.5}
+.chat-msg.ai .chat-bubble{background:var(--cream);border:1px solid var(--border);color:var(--ink)}
+.chat-msg.user .chat-bubble{background:var(--ink);color:var(--cream)}
+.chat-avatar{width:26px;height:26px;border-radius:50%;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px}
+.chat-msg.ai .chat-avatar{background:var(--next-week-light);color:var(--next-week)}
+.chat-msg.user .chat-avatar{background:var(--ink-soft);color:var(--cream)}
+.chat-input-row{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--border);background:var(--parchment)}
+.chat-input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--white);color:var(--ink);resize:none;min-height:38px;max-height:100px}
+.chat-input:focus{outline:none;border-color:var(--next-week-mid)}
+.chat-send{padding:8px 16px;background:var(--next-week);border:none;border-radius:6px;color:white;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s;white-space:nowrap}
+.chat-send:hover{background:#4a2f75}
+.chat-send:disabled{opacity:.5;cursor:not-allowed}
+
+/* PREVIEW PLAN IN CHAT */
+.preview-plan{margin-top:8px;border:1px solid var(--border);border-radius:8px;overflow:hidden;font-size:12px}
+.preview-plan-header{background:var(--next-week-light);padding:6px 12px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--next-week);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.preview-plan-row{display:flex;align-items:center;border-bottom:1px solid var(--parchment);padding:7px 12px;gap:8px}
+.preview-plan-row:last-child{border-bottom:none}
+.preview-day{width:34px;font-weight:500;font-size:12px;color:var(--ink);flex-shrink:0}
+.preview-meals{flex:1;display:flex;flex-direction:column;gap:2px}
+.preview-meal-line{font-size:12px;color:var(--ink-soft)}
+.preview-meal-line .meal-type-hint{font-size:10px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.04em;margin-right:5px}
+.preview-lock-btn{background:none;border:1px solid var(--border);border-radius:4px;font-size:11px;padding:2px 7px;cursor:pointer;color:var(--ink-muted);transition:all .15s;flex-shrink:0}
+.preview-lock-btn:hover{background:var(--warm-light);border-color:var(--warm);color:var(--warm)}
+.preview-lock-btn.locked{background:var(--warm-light);border-color:var(--warm);color:var(--warm)}
+.preview-actions{display:flex;gap:8px;padding:10px 12px;background:var(--parchment);border-top:1px solid var(--border)}
+
+/* GROCERY */
+.grocery-week-section{margin-bottom:2rem}
+.grocery-week-title{font-family:'DM Serif Display',serif;font-size:20px;font-weight:400;margin-bottom:.75rem;display:flex;align-items:center;gap:10px}
+.grocery-week-title .week-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.grocery-controls{display:flex;align-items:center;gap:10px;margin-bottom:1rem;flex-wrap:wrap}
+.progress-wrap{margin-left:auto;display:flex;align-items:center;gap:8px}
+.progress-bar{width:100px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .3s}
+.progress-label{font-size:12px;color:var(--ink-muted)}
+.grocery-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.grocery-category{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.category-header{background:var(--parchment);padding:9px 13px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}
+.category-count{margin-left:auto;font-size:11px;color:var(--ink-muted)}
+.grocery-item{display:flex;align-items:flex-start;gap:9px;padding:8px 13px;border-bottom:1px solid var(--parchment);cursor:pointer;transition:background .1s;user-select:none}
+.grocery-item:last-child{border-bottom:none}
+.grocery-item:hover{background:var(--cream)}
+.grocery-item.checked{opacity:.4}
+.grocery-item.checked .item-name{text-decoration:line-through}
+.item-check{width:17px;height:17px;border:1.5px solid var(--border);border-radius:4px;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .15s;background:var(--white)}
+.grocery-item.checked .item-check{background:var(--accent);border-color:var(--accent)}
+.item-check-icon{display:none;color:white;font-size:10px;font-weight:700}
+.grocery-item.checked .item-check-icon{display:block}
+.item-name{font-size:13px;flex:1}
+.item-amount{font-size:12px;color:var(--ink-muted);white-space:nowrap}
+
+/* RECIPES */
+.recipes-week-section{margin-bottom:2.5rem}
+.recipes-section-label{display:flex;align-items:center;gap:10px;margin-bottom:1rem;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.recipes-section-label h2{font-family:'DM Serif Display',serif;font-size:20px;font-weight:400}
+.recipes-section-label .week-chip{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}
+.chip-this{background:var(--this-week-light);color:var(--this-week)}
+.chip-next{background:var(--next-week-light);color:var(--next-week)}
+.chip-fav{background:var(--warm-light);color:var(--warm)}
+.recipes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.recipe-card{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden;position:relative;cursor:pointer;transition:transform .15s,box-shadow .15s}
+.recipe-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.08)}
+.recipe-card.this-week-card{border-top:3px solid var(--this-week)}
+.recipe-card.next-week-card{border-top:3px solid var(--next-week)}
+.recipe-card.fav-card{border-top:3px solid var(--warm)}
+.star-btn{position:absolute;top:10px;right:10px;width:28px;height:28px;background:var(--parchment);border:1px solid var(--border);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;z-index:2;transition:all .15s}
+.star-btn:hover{background:var(--warm-light);transform:scale(1.1)}
+.star-btn.starred{background:var(--warm-light);border-color:var(--warm)}
+.recipe-card-header{padding:14px 16px 10px}
+.recipe-tag{font-size:10px;text-transform:uppercase;letter-spacing:.07em;font-weight:500;color:var(--ink-muted);margin-bottom:5px}
+.recipe-card-name{font-family:'DM Serif Display',serif;font-size:16px;font-weight:400;color:var(--ink);line-height:1.3;margin-bottom:7px;padding-right:24px}
+.recipe-macros{display:flex;gap:6px;flex-wrap:wrap}
+.recipe-macro{font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px}
+.rm-c{background:var(--blue-light);color:var(--blue)}
+.rm-f{background:var(--warm-light);color:var(--warm)}
+.rm-p{background:var(--accent-light);color:var(--accent)}
+.recipe-card-body{padding:10px 16px 14px;border-top:1px solid var(--parchment)}
+.recipe-meta{display:flex;gap:14px;margin-bottom:7px;flex-wrap:wrap}
+.recipe-meta-item{font-size:12px;color:var(--ink-muted)}
+.recipe-meta-item strong{color:var(--ink-soft);font-weight:500}
+.recipe-preview{font-size:12px;color:var(--ink-soft);line-height:1.5}
+.fav-banner{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--warm);padding:4px 14px;background:var(--warm-light);border-bottom:1px solid #EDCFB8}
+
+/* MODAL */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(28,26,22,.6);z-index:300;overflow-y:auto;padding:2rem 1rem}
+.modal-backdrop.open{display:flex;align-items:flex-start;justify-content:center}
+.modal{background:var(--white);border-radius:14px;width:100%;max-width:660px;overflow:hidden;position:relative;animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.modal-close{position:absolute;top:12px;right:12px;width:30px;height:30px;background:var(--parchment);border:1px solid var(--border);border-radius:50%;cursor:pointer;font-size:17px;color:var(--ink-soft);display:flex;align-items:center;justify-content:center;z-index:10}
+.modal-close:hover{background:var(--border)}
+.modal-header{padding:22px 26px 16px;border-bottom:1px solid var(--parchment);background:var(--cream)}
+.modal-tag{font-size:11px;text-transform:uppercase;letter-spacing:.07em;font-weight:500;color:var(--ink-muted);margin-bottom:5px}
+.modal-title{font-family:'DM Serif Display',serif;font-size:24px;font-weight:400;color:var(--ink);margin-bottom:9px;line-height:1.25}
+.modal-macros{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:9px}
+.modal-macro{font-size:12px;font-weight:500;padding:3px 10px;border-radius:20px}
+.modal-meta{display:flex;gap:18px;flex-wrap:wrap}
+.modal-meta-item{font-size:13px;color:var(--ink-muted)}
+.modal-meta-item strong{color:var(--ink-soft)}
+.modal-body{padding:20px 26px}
+.modal-section-title{font-size:11px;text-transform:uppercase;letter-spacing:.09em;font-weight:500;color:var(--ink-muted);margin-bottom:10px;padding-bottom:5px;border-bottom:1px solid var(--parchment)}
+.portions-table{width:100%;border-collapse:collapse;margin-bottom:20px}
+.portions-table tr{border-bottom:1px solid var(--parchment)}
+.portions-table tr:last-child{border-bottom:none}
+.portions-table td{padding:6px 0;font-size:13px;vertical-align:top}
+.pt-component{color:var(--ink);width:46%}
+.pt-weight{font-weight:500;color:var(--ink);width:18%;white-space:nowrap}
+.pt-note{color:var(--ink-muted);font-size:12px;width:36%}
+.ingredients-list{list-style:none;margin-bottom:20px}
+.ingredients-list li{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--parchment);font-size:13px}
+.ingredients-list li:last-child{border-bottom:none}
+.ing-name{color:var(--ink)}
+.ing-amount{color:var(--ink-muted);font-size:12px}
+.steps-list{list-style:none}
+.steps-list li{display:flex;gap:12px;margin-bottom:12px;font-size:13px;line-height:1.6;color:var(--ink-soft)}
+.step-num{width:22px;height:22px;background:var(--ink);color:var(--cream);border-radius:50%;font-size:11px;font-weight:500;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px}
+.step-day-before{width:22px;height:22px;background:var(--warm);color:var(--cream);border-radius:50%;font-size:9px;font-weight:700;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;line-height:1}
+.note-box{background:var(--accent-light);border-left:3px solid var(--accent-mid);border-radius:0 6px 6px 0;padding:9px 13px;font-size:12px;color:var(--accent);margin-top:14px;line-height:1.5}
+
+/* RULES TAB */
+.rules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;margin-bottom:2rem}
+.rules-category{background:var(--white);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.rules-category-header{background:var(--parchment);padding:9px 14px;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-soft);border-bottom:1px solid var(--border)}
+.rule-item{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:1px solid var(--parchment);font-size:13px}
+.rule-item:last-child{border-bottom:none}
+.rule-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.rule-text{flex:1;color:var(--ink-soft);line-height:1.4}
+.rule-delete{background:none;border:none;color:var(--border);cursor:pointer;font-size:16px;padding:0 2px;transition:color .15s;flex-shrink:0}
+.rule-delete:hover{color:#A32D2D}
+.rule-delete.hardcoded{opacity:0;cursor:default;pointer-events:none}
+.add-rule-row{display:flex;gap:8px;margin-top:.5rem}
+.add-rule-input{flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--white);color:var(--ink)}
+.add-rule-input:focus{outline:none;border-color:var(--accent-mid)}
+
+/* SETTINGS MODAL */
+.settings-modal{background:var(--white);border-radius:14px;width:100%;max-width:400px;overflow:hidden;position:relative;animation:modalIn .2s ease}
+.settings-header{padding:18px 22px 14px;border-bottom:1px solid var(--parchment);background:var(--cream)}
+.settings-header h2{font-family:'DM Serif Display',serif;font-size:22px;font-weight:400}
+.settings-body{padding:18px 22px}
+.settings-label{font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-muted);margin-bottom:6px}
+.settings-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:var(--cream);color:var(--ink);margin-bottom:12px}
+.settings-input:focus{outline:none;border-color:var(--accent-mid)}
+.settings-hint{font-size:12px;color:var(--ink-muted);line-height:1.5;margin-bottom:16px}
+.key-status{font-size:12px;display:flex;align-items:center;gap:6px;margin-bottom:16px}
+
+/* CONFIRM MODAL */
+.confirm-modal{background:var(--white);border-radius:14px;width:100%;max-width:380px;overflow:hidden;position:relative;animation:modalIn .2s ease}
+.confirm-header{padding:18px 22px 10px}
+.confirm-header h3{font-family:'DM Serif Display',serif;font-size:20px;font-weight:400}
+.confirm-body{padding:0 22px 18px;font-size:13px;color:var(--ink-soft);line-height:1.5}
+.confirm-actions{display:flex;gap:8px;padding:14px 22px;border-top:1px solid var(--parchment);justify-content:flex-end}
+
+/* LOADING SPINNER */
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:3rem 1rem;color:var(--ink-muted)}
+.empty-state-icon{font-size:36px;margin-bottom:.75rem}
+.empty-state p{font-size:14px;line-height:1.5}
+
+@media(max-width:540px){
+  .nav-tab{padding:16px 8px;font-size:11px}
+  .section{padding:1.25rem .75rem}
+  .meal-type-col{width:64px;padding:9px 8px;font-size:9px}
+  .meal-macro-col{width:100px;padding:9px 8px;font-size:11px}
+  .meal-name-col{padding:9px 10px;font-size:12px}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-brand">Meal <span>Plan</span></div>
+  <button class="nav-tab active" onclick="showTab('plan',this)">Plan</button>
+  <button class="nav-tab" onclick="showTab('grocery',this)">Grocery</button>
+  <button class="nav-tab" onclick="showTab('recipes',this)">Recipes</button>
+  <button class="nav-tab" onclick="showTab('rules',this)">Rules</button>
+  <button class="nav-gear" onclick="openSettings()" title="Settings">⚙️</button>
+</nav>
+
+<!-- ═══════ PLAN TAB ═══════ -->
+<div id="tab-plan" class="section active">
+  <div class="page-header">
+    <h1>Meal Plan</h1>
+    <p>2 meals per day · 8 adult portions each</p>
+  </div>
+  <div class="plan-week-tabs">
+    <button class="plan-week-tab active-this" onclick="showPlanWeek('this',this)">This Week</button>
+    <button class="plan-week-tab" onclick="showPlanWeek('next',this)">Next Week</button>
+  </div>
+
+  <!-- THIS WEEK -->
+  <div id="plan-this-week">
+    <div class="week-badge this">● This Week</div>
+    <div id="plan-days-this"></div>
+  </div>
+
+  <!-- NEXT WEEK -->
+  <div id="plan-next-week" style="display:none">
+    <div class="week-badge next">● Next Week (in progress)</div>
+    <div class="next-week-actions">
+      <button class="btn btn-primary" onclick="startChat()" id="btn-start-chat">✦ Build with AI</button>
+      <button class="btn btn-save" onclick="saveNextWeek()" id="btn-save-plan" disabled>Save Plan</button>
+      <button class="btn btn-push" onclick="confirmPush()" id="btn-push-plan" disabled>Push to This Week →</button>
+      <div class="save-status"><div class="save-dot" id="save-dot"></div><span id="save-status-text">Not saved</span></div>
+    </div>
+    <div id="plan-days-next"></div>
+    <div id="oneoff-next-section" style="display:none;margin-top:1rem">
+      <div class="week-badge" style="background:var(--warm-light);color:var(--warm)">✦ 1-off recipes this week</div>
+      <div id="plan-oneoffs-next"></div>
+    </div>
+    <div id="chat-section" style="display:none">
+      <div class="chat-wrap">
+        <div class="chat-header">
+          <span>AI Meal Planner</span>
+          <button class="btn" style="padding:3px 10px;font-size:11px" onclick="clearChat()">Clear</button>
+        </div>
+        <div class="chat-messages" id="chat-messages"></div>
+        <div class="chat-input-row">
+          <textarea class="chat-input" id="chat-input" placeholder="Tell me what you want this week…" rows="1" onkeydown="chatKeydown(event)"></textarea>
+          <button class="chat-send" id="chat-send-btn" onclick="sendChat()">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ GROCERY TAB ═══════ -->
+<div id="tab-grocery" class="section">
+  <div class="page-header">
+    <h1>Grocery List</h1>
+    <p>Separate lists per week · tap to check off</p>
+  </div>
+  <div class="grocery-week-section">
+    <div class="grocery-week-title">
+      <div class="week-dot" style="background:var(--this-week)"></div>
+      This Week
+      <button class="btn" style="font-size:11px;padding:4px 10px;margin-left:8px" onclick="clearChecked('this')">Uncheck all</button>
+    </div>
+    <div class="grocery-grid" id="grocery-grid-this"></div>
+  </div>
+  <div class="grocery-week-section">
+    <div class="grocery-week-title">
+      <div class="week-dot" style="background:var(--next-week)"></div>
+      Next Week
+      <button class="btn" style="font-size:11px;padding:4px 10px;margin-left:8px" onclick="clearChecked('next')">Uncheck all</button>
+    </div>
+    <div id="grocery-next-empty" class="empty-state" style="padding:1.5rem">
+      <div class="empty-state-icon">🛒</div>
+      <p>Build next week's plan first,<br>then push it to generate the grocery list.</p>
+    </div>
+    <div class="grocery-grid" id="grocery-grid-next" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ═══════ RECIPES TAB ═══════ -->
+<div id="tab-recipes" class="section">
+  <div class="page-header">
+    <h1>Recipes</h1>
+    <p>Star any recipe to save it permanently</p>
+  </div>
+  <div id="recipes-this-section" class="recipes-week-section">
+    <div class="recipes-section-label">
+      <h2>This Week</h2><span class="week-chip chip-this">Current</span>
+    </div>
+    <div class="recipes-grid" id="recipes-grid-this"></div>
+  </div>
+  <div id="recipes-next-section" class="recipes-week-section" style="display:none">
+    <div class="recipes-section-label">
+      <h2>Next Week</h2><span class="week-chip chip-next">In progress</span>
+    </div>
+    <div class="recipes-grid" id="recipes-grid-next"></div>
+  </div>
+  <div id="recipes-fav-section" class="recipes-week-section" style="display:none">
+    <div class="recipes-section-label">
+      <h2>Saved Favorites</h2><span class="week-chip chip-fav" id="fav-chip-count">0 saved</span>
+    </div>
+    <div class="recipes-grid" id="recipes-grid-fav"></div>
+  </div>
+</div>
+
+<!-- ═══════ RULES TAB ═══════ -->
+<div id="tab-rules" class="section">
+  <div class="page-header">
+    <h1>Rules</h1>
+    <p>These rules are sent to the AI every time you generate a plan</p>
+  </div>
+  <div class="rules-grid" id="rules-grid"></div>
+  <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:16px 18px">
+    <div style="font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-muted);margin-bottom:10px">Add a custom rule</div>
+    <div class="add-rule-row">
+      <input type="text" class="add-rule-input" id="new-rule-input" placeholder="e.g. No nuts — allergy" onkeydown="if(event.key==='Enter')addCustomRule()">
+      <button class="btn btn-primary" onclick="addCustomRule()">Add</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-backdrop" id="settings-backdrop" onclick="closeSettingsOutside(event)">
+  <div class="settings-modal">
+    <button class="modal-close" onclick="closeSettings()">×</button>
+    <div class="settings-header"><h2>Settings</h2></div>
+    <div class="settings-body">
+      <div class="settings-label">Anthropic API Key</div>
+      <div class="key-status" id="key-status"></div>
+      <input type="password" class="settings-input" id="api-key-input" placeholder="sk-ant-…">
+      <div class="settings-hint">Your key is stored only in this browser's localStorage — it never appears in the HTML file and is never sent anywhere except directly to Anthropic's API.</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" onclick="saveApiKey()">Save Key</button>
+        <button class="btn btn-danger" onclick="clearApiKey()">Remove Key</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM PUSH MODAL -->
+<div class="modal-backdrop" id="confirm-backdrop">
+  <div class="confirm-modal">
+    <div class="confirm-header"><h3>Push to This Week?</h3></div>
+    <div class="confirm-body">This will replace the current week's plan, recipes, and grocery list. Any unstarred recipes from this week will be cleared.<br><br><strong>Starred recipes are always kept.</strong></div>
+    <div class="confirm-actions">
+      <button class="btn" onclick="document.getElementById('confirm-backdrop').classList.remove('open')">Cancel</button>
+      <button class="btn btn-push" onclick="executePush()">Yes, push it →</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECIPE MODAL -->
+<div class="modal-backdrop" id="recipe-modal-backdrop" onclick="closeRecipeModal(event)">
+  <div class="modal" id="recipe-modal-content"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// STORAGE KEYS
+// ═══════════════════════════════════════════════════════
+const SK = {
+  apiKey:       'mp_apikey',
+  starred:      'mp_starred',
+  thisWeekPlan: 'mp_this_plan',
+  thisWeekGroc: 'mp_this_groc',
+  thisWeekRec:  'mp_this_rec',
+  nextWeekPlan: 'mp_next_plan',
+  nextWeekGroc: 'mp_next_groc',
+  nextWeekRec:  'mp_next_rec',
+  nextWeekSaved:'mp_next_saved',
+  chatHistory:  'mp_chat',
+  customRules:  'mp_rules',
+  nextOneoffs:  'mp_next_oneoffs',
+};
+const ls = {
+  get: k => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch(e) { return null; } },
+  set: (k,v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch(e) {} },
+  del: k => { try { localStorage.removeItem(k); } catch(e) {} },
+};
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let starredRecipes = ls.get(SK.starred) || {};
+let customRules    = ls.get(SK.customRules) || [];
+let chatHistory    = ls.get(SK.chatHistory) || [];
+let nextWeekPlanData = ls.get(SK.nextWeekPlan) || null;
+let nextWeekGrocData = ls.get(SK.nextWeekGroc) || null;
+let nextWeekRecData  = ls.get(SK.nextWeekRec)  || null;
+let nextWeekOneoffs  = ls.get(SK.nextOneoffs)  || [];
+let nextWeekSaved    = ls.get(SK.nextWeekSaved) || false;
+let lockedDays       = {};
+let previewPlan      = null; // pending AI preview before push to next-week state
+const collapsedThis  = {};
+const collapsedNext  = {};
+
+// ═══════════════════════════════════════════════════════
+// ── UPDATE WEEKLY: replace thisWeekPlan below ──
+// ── (or it will be populated automatically when you push next week)
+// ═══════════════════════════════════════════════════════
+const THIS_WEEK_DEFAULT_PLAN = [
+  { day:'Mon', tag:null, meals:[
+    { type:'Lunch', name:'Lemon herb chicken & farro bowls', c:28, f:10, p:42 },
+    { type:'Dinner', name:'Sheet pan turkey meatballs & roasted broccoli', c:25, f:11, p:44 },
+  ]},
+  { day:'Tue', tag:null, meals:[
+    { type:'Lunch', name:'Lemon herb chicken & farro bowls', c:28, f:10, p:42 },
+    { type:'Dinner', name:'Baked salmon & steamed asparagus', c:22, f:12, p:46 },
+  ]},
+  { day:'Wed', tag:null, meals:[
+    { type:'Lunch', name:'Lemon herb chicken & farro bowls', c:28, f:10, p:42 },
+    { type:'Dinner', name:'Baked salmon & asparagus', c:22, f:12, p:46 },
+  ]},
+  { day:'Thu', tag:'leftovers', leftoverDinner:true, meals:[
+    { type:'Lunch', name:'Lemon herb chicken & farro bowls', c:28, f:10, p:42 },
+  ]},
+  { day:'Fri', tag:null, meals:[
+    { type:'Lunch', name:'Tuna & white bean lettuce wraps', c:20, f:10, p:40 },
+    { type:'Dinner', name:'Lean beef stir fry & Homai calrose rice', c:38, f:12, p:44 },
+  ]},
+  { day:'Sat', tag:null, meals:[
+    { type:'Lunch', name:'Tuna & white bean lettuce wraps', c:20, f:10, p:40 },
+    { type:'Dinner', name:'Lean beef stir fry & Homai calrose rice', c:38, f:12, p:44 },
+  ]},
+  { day:'Sun', tag:'prep + leftovers', leftoverDinner:true, meals:[
+    { type:'Lunch', name:'Tuna & white bean lettuce wraps', c:20, f:10, p:40 },
+  ]},
+];
+
+// ═══════════════════════════════════════════════════════
+// ── UPDATE WEEKLY: replace thisWeekGrocery below ──
+// ═══════════════════════════════════════════════════════
+const THIS_WEEK_DEFAULT_GROC = [
+  { category:'Proteins', icon:'🥩', items:[
+    { name:'Chicken breast, boneless skinless', amount:'5 lbs' },
+    { name:'Chicken thighs, skinless boneless', amount:'3 lbs' },
+    { name:'Lean ground turkey', amount:'2.5 lbs' },
+    { name:'Salmon fillets', amount:'3 lbs' },
+    { name:'Sirloin steak', amount:'2 lbs' },
+    { name:'Albacore tuna, canned', amount:'6 cans (5oz)' },
+  ]},
+  { category:'Grains & legumes', icon:'🌾', items:[
+    { name:'Farro', amount:'2 cups dry' },
+    { name:'Homai calrose rice', amount:'4 cups dry' },
+    { name:'White beans, canned', amount:'6 cans (15oz)' },
+  ]},
+  { category:'Vegetables', icon:'🥦', items:[
+    { name:'Broccoli florets', amount:'3 lbs' },
+    { name:'Zucchini', amount:'4 medium' },
+    { name:'Asparagus', amount:'2 bunches' },
+    { name:'Cherry tomatoes', amount:'2 pints' },
+    { name:'Cucumber', amount:'3 medium' },
+    { name:'Snap peas', amount:'1 lb' },
+    { name:'Bell peppers (mixed)', amount:'4 large' },
+    { name:'Romaine lettuce hearts', amount:'3 heads' },
+    { name:'Baby spinach', amount:'10 oz' },
+    { name:'Celery', amount:'1 bunch' },
+    { name:'Red onion', amount:'2 medium' },
+    { name:'Sweet potato', amount:'3 lbs' },
+    { name:'Green beans', amount:'1 lb' },
+  ]},
+  { category:'Pantry & condiments', icon:'🥫', items:[
+    { name:'Diced tomatoes, canned', amount:'2 cans (14oz)' },
+    { name:'Marinara sauce', amount:'1 jar (24oz)' },
+    { name:'Low-sodium chicken broth', amount:'32 oz' },
+    { name:'Low-sodium stir fry sauce', amount:'1 bottle' },
+    { name:'Honey', amount:'on hand' },
+    { name:'Dijon mustard', amount:'on hand' },
+    { name:'Olive oil', amount:'on hand' },
+    { name:'Sesame oil', amount:'on hand' },
+  ]},
+];
+
+// ═══════════════════════════════════════════════════════
+// ── UPDATE WEEKLY: replace thisWeekRecipes below ──
+// ═══════════════════════════════════════════════════════
+const THIS_WEEK_DEFAULT_REC = [
+  {
+    tag:'Mon–Thu lunch · Meal prep', name:'Lemon herb chicken & farro bowls',
+    macros:{c:28,f:10,p:42}, serves:8, time:'45 min', difficulty:'Easy',
+    preview:'Grilled chicken breast, farro, roasted zucchini, lemon-herb vinaigrette. Batch makes 8 portions.',
+    portions:[
+      {component:'Chicken breast (cooked)',weight:'140g',note:'~25% loss from raw'},
+      {component:'Farro (cooked)',weight:'120g',note:'≈ ½ cup'},
+      {component:'Roasted zucchini',weight:'90g',note:'free to adjust'},
+    ],
+    ingredients:[
+      {name:'Chicken breast, boneless skinless',amount:'3.5 lbs'},
+      {name:'Farro, dry',amount:'2 cups'},
+      {name:'Zucchini',amount:'3 medium'},
+      {name:'Cherry tomatoes',amount:'1 pint'},
+      {name:'Olive oil',amount:'3 tbsp'},
+      {name:'Lemon juice',amount:'3 tbsp'},
+      {name:'Garlic',amount:'3 cloves'},
+      {name:'Fresh parsley',amount:'¼ cup'},
+    ],
+    steps:[
+      'Cook farro per package directions (~30 min). Season with salt. Cool.',
+      'Season chicken with olive oil, garlic, oregano, salt, pepper. Grill or bake at 400°F 22–25 min to 165°F. Slice and cool.',
+      'Roast zucchini at 425°F 18 min.',
+      'Whisk lemon juice, olive oil, garlic, parsley for dressing.',
+      'Portion into 8 containers: 140g chicken, 120g farro, 90g zucchini, tomatoes, cucumber. Store dressing separately.',
+    ],
+    note:'Store dressing separately — add at serving time to stay fresh through Thursday.',
+  },
+  {
+    tag:'Monday dinner', name:'Sheet pan turkey meatballs & roasted broccoli',
+    macros:{c:25,f:11,p:44}, serves:8, time:'40 min', difficulty:'Easy',
+    preview:'Lean turkey meatballs, roasted broccoli, light marinara. Homai calrose rice for kids.',
+    portions:[
+      {component:'Turkey meatballs (cooked)',weight:'170g',note:'~15% loss; 4–5 meatballs'},
+      {component:'Roasted broccoli',weight:'130g',note:'florets shrink ~30%'},
+      {component:'Marinara sauce',weight:'60g',note:'≈ ¼ cup'},
+    ],
+    ingredients:[
+      {name:'Lean ground turkey',amount:'2.5 lbs'},
+      {name:'Broccoli florets',amount:'2 lbs'},
+      {name:'Eggs',amount:'2 large'},
+      {name:'Breadcrumbs',amount:'½ cup'},
+      {name:'Parmesan, grated',amount:'3 tbsp'},
+      {name:'Marinara sauce',amount:'1 jar (24oz)'},
+      {name:'Homai calrose rice (kids)',amount:'3 cups dry'},
+    ],
+    steps:[
+      'Preheat oven 400°F. Line two baking sheets.',
+      'Mix turkey, eggs, breadcrumbs, parmesan, garlic powder, Italian seasoning, salt, pepper. Form ~32–36 meatballs.',
+      'Toss broccoli with olive oil, salt, pepper on second sheet.',
+      'Bake both 22–25 min until meatballs hit 165°F and broccoli is caramelized.',
+      'Portion: 170g meatballs + 130g broccoli per adult. Serve with 60g marinara.',
+    ],
+    note:'Adults skip rice to stay in macro range.',
+  },
+  {
+    tag:'Tue & Wed dinner', name:'Baked salmon & steamed asparagus',
+    macros:{c:22,f:12,p:46}, serves:8, time:'30 min', difficulty:'Easy',
+    preview:'Honey-dijon glazed salmon, steamed asparagus. Cook Tue, reheat Wed.',
+    portions:[
+      {component:'Salmon fillet (cooked)',weight:'150g',note:'~20% loss; start ~185g raw'},
+      {component:'Asparagus (steamed)',weight:'120g',note:'≈ 8–10 spears'},
+    ],
+    ingredients:[
+      {name:'Salmon fillets',amount:'3 lbs (8 portions)'},
+      {name:'Asparagus',amount:'2 bunches'},
+      {name:'Honey',amount:'2 tbsp'},
+      {name:'Dijon mustard',amount:'2 tbsp'},
+      {name:'Garlic',amount:'2 cloves'},
+    ],
+    steps:[
+      'Preheat oven 400°F.',
+      'Whisk honey, dijon, olive oil, garlic for glaze.',
+      'Pat salmon dry, season, brush with glaze. Bake 12–15 min until it flakes.',
+      'Portion 150g salmon + 120g asparagus per adult. Portion into 8 containers.',
+    ],
+    note:'Wed is no-cook — just reheat at 275°F for 12 min or microwave at 50% power.',
+  },
+  {
+    tag:'Thursday dinner', name:'Slow cooker chicken & white bean stew',
+    macros:{c:30,f:9,p:45}, serves:8, time:'15 min prep · 6–8 hrs slow cook', difficulty:'Very easy',
+    preview:'Set it in the morning. Toddler-friendly. Chicken breast, white beans, tomatoes, spinach.',
+    portions:[
+      {component:'Shredded chicken (cooked)',weight:'130g',note:'~25% loss'},
+      {component:'White beans',weight:'90g',note:'≈ ½ cup'},
+      {component:'Broth + tomatoes + spinach',weight:'200g',note:'≈ ¾ cup ladle'},
+    ],
+    ingredients:[
+      {name:'Chicken breast',amount:'2 lbs'},
+      {name:'White beans, canned',amount:'2 cans (15oz), drained'},
+      {name:'Diced tomatoes, canned',amount:'2 cans (14oz)'},
+      {name:'Baby spinach',amount:'4 oz'},
+      {name:'Low-sodium chicken broth',amount:'2 cups'},
+      {name:'Garlic',amount:'4 cloves'},
+    ],
+    steps:[
+      'Add chicken whole to slow cooker with beans, tomatoes, broth, garlic, Italian seasoning.',
+      'Cook LOW 6–8 hrs or HIGH 3–4 hrs.',
+      'Shred chicken with two forks directly in the pot.',
+      'Stir in spinach — wilts in 5 min. Adjust seasoning.',
+      'Serve: 130g chicken + 90g beans + ~200g broth per adult.',
+    ],
+    note:'Soft beans and tender shredded chicken are toddler-safe.',
+  },
+  {
+    tag:'Fri–Sun lunch · Meal prep', name:'Tuna & white bean lettuce wraps',
+    macros:{c:20,f:10,p:40}, serves:8, time:'20 min', difficulty:'Very easy',
+    preview:'No cooking required. Albacore tuna, white beans, lemon-dijon dressing in romaine.',
+    portions:[
+      {component:'Tuna & bean filling',weight:'200g',note:'≈ ¾ cup per portion'},
+      {component:'Romaine leaves',weight:'60g',note:'2–3 large leaves'},
+    ],
+    ingredients:[
+      {name:'Albacore tuna, canned',amount:'6 cans (5oz)'},
+      {name:'White beans, canned',amount:'2 cans (15oz), drained'},
+      {name:'Celery',amount:'4 stalks'},
+      {name:'Red onion',amount:'½ medium'},
+      {name:'Romaine lettuce hearts',amount:'3 heads'},
+    ],
+    steps:[
+      'Drain tuna and beans.',
+      'Combine tuna, beans, celery, red onion.',
+      'Whisk lemon juice, dijon, olive oil, parsley. Toss with filling.',
+      'Weigh total filling ÷ 8 (~200g per portion). Store in 8 containers.',
+      'Serve: 200g filling in romaine leaves.',
+    ],
+    note:'Keep romaine whole and unwashed until serving.',
+  },
+  {
+    tag:'Fri & Sat dinner', name:'Lean beef stir fry & Homai calrose rice',
+    macros:{c:38,f:12,p:44}, serves:8, time:'30 min', difficulty:'Easy',
+    preview:'Sirloin strips, broccoli, snap peas, bell pepper, low-sodium stir fry sauce.',
+    portions:[
+      {component:'Sirloin beef (cooked)',weight:'115g',note:'~25% loss from raw'},
+      {component:'Stir fry vegetables',weight:'150g',note:'broccoli + snap peas + peppers'},
+      {component:'Calrose rice (cooked)',weight:'100g',note:'≈ ½ cup adults; kids 150–200g'},
+    ],
+    ingredients:[
+      {name:'Sirloin steak',amount:'2 lbs, thinly sliced'},
+      {name:'Broccoli florets',amount:'1 lb'},
+      {name:'Snap peas',amount:'1 lb'},
+      {name:'Bell peppers',amount:'3 large'},
+      {name:'Homai calrose rice',amount:'3 cups dry'},
+    ],
+    steps:[
+      'Cook calrose rice per package. Set aside.',
+      'Toss beef with soy sauce and cornstarch. Rest 10 min.',
+      'Sear beef in batches over very high heat 2–3 min. Remove.',
+      'Stir fry broccoli and snap peas 3–4 min. Add peppers 2 min.',
+      'Return beef, add stir fry sauce. Toss 1 min over high heat.',
+      'Plate: 115g beef + 150g veg + 100g rice per adult.',
+    ],
+    note:'Sat: reheat with splash of water, cover, medium heat 5 min.',
+  },
+  {
+    tag:'Sunday dinner', name:'Grilled chicken thighs & roasted sweet potato',
+    macros:{c:32,f:11,p:43}, serves:8, time:'45 min', difficulty:'Easy',
+    preview:'Skinless chicken thighs, cubed sweet potato, green beans, garlic olive oil.',
+    portions:[
+      {component:'Chicken thighs (cooked)',weight:'145g',note:'~20% loss from raw'},
+      {component:'Roasted sweet potato',weight:'130g',note:'weigh after roasting'},
+      {component:'Green beans (steamed)',weight:'100g',note:'free to adjust'},
+    ],
+    ingredients:[
+      {name:'Chicken thighs, boneless skinless',amount:'3 lbs'},
+      {name:'Sweet potato',amount:'3 lbs'},
+      {name:'Green beans',amount:'1 lb'},
+      {name:'Olive oil',amount:'3 tbsp'},
+      {name:'Smoked paprika',amount:'1 tsp'},
+    ],
+    steps:[
+      'Preheat 425°F. Cube sweet potato, toss with olive oil, salt, pepper. Roast 30–35 min flipping halfway. Weigh after — target 130g per portion.',
+      'Season thighs with olive oil, garlic, smoked paprika, thyme, salt, pepper.',
+      'Grill 6–7 min per side to 165°F. Rest 5 min. Weigh — target 145g per portion.',
+      'Steam green beans 5 min.',
+      'Plate: 145g chicken + 130g sweet potato + 100g green beans.',
+    ],
+    note:'Sweet potato is macro-sensitive — always weigh after roasting, not before.',
+  },
+];
+
+// Load this week from localStorage or fall back to defaults
+let thisWeekPlan = ls.get(SK.thisWeekPlan) || THIS_WEEK_DEFAULT_PLAN;
+let thisWeekGroc = ls.get(SK.thisWeekGroc) || THIS_WEEK_DEFAULT_GROC;
+let thisWeekRec  = ls.get(SK.thisWeekRec)  || THIS_WEEK_DEFAULT_REC;
+let checkedThis  = {};
+let checkedNext  = {};
+
+// ═══════════════════════════════════════════════════════
+// HARDCODED RULES (cannot be deleted)
+// ═══════════════════════════════════════════════════════
+const HARDCODED_RULES = [
+  { cat:'Allergens & restrictions', icon:'🚫', text:'No mango — household allergy, hard no' },
+  { cat:'Allergens & restrictions', icon:'🐟', text:'No fish unless specifically requested in chat' },
+  { cat:'Portions & macros', icon:'🍽️', text:'8 adult portions per meal minimum' },
+  { cat:'Portions & macros', icon:'📊', text:'Each meal: 20–35g carbs / 9–12g fat / 35–50g protein per adult portion' },
+  { cat:'Ingredients', icon:'🍚', text:'Homai calrose rice is the household starch — no substitutions' },
+  { cat:'Family', icon:'👨‍👩‍👧‍👦', text:'Dinner must be kid-friendly (ages 2, 6, 10, 13)' },
+  { cat:'Meal prep', icon:'⏱️', text:'Max 30 minutes active prep per recipe' },
+  { cat:'Meal prep', icon:'🌙', text:'Marinating or overnight steps allowed — must appear on the correct day before in the plan' },
+  { cat:'Meal prep', icon:'🥗', text:'Lunch must always be batch-cook friendly (prepped once, eaten 3–4 days)' },
+  { cat:'Planning', icon:'♻️', text:'Maximize ingredient overlap across the week to reduce waste' },
+  { cat:'Planning', icon:'📅', text:'Leftover nights default to Thursday and Sunday — adjustable per week in chat' },
+  { cat:'Planning', icon:'🗓️', text:'Meal prep day is Saturday or Sunday — confirm in chat each time a new week is generated' },
+];
+
+// ═══════════════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════════════
+function showTab(id, el) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════
+// PLAN — THIS WEEK
+// ═══════════════════════════════════════════════════════
+function showPlanWeek(which, el) {
+  document.getElementById('plan-this-week').style.display = which === 'this' ? '' : 'none';
+  document.getElementById('plan-next-week').style.display = which === 'next' ? '' : 'none';
+  document.querySelectorAll('.plan-week-tab').forEach(t => {
+    t.classList.remove('active-this','active-next');
+  });
+  el.classList.add('active-' + which);
+}
+
+function buildPlanDays(days, containerId, collapseState, week) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  if (!days || days.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No plan yet. Use the AI chat to build next week.</p></div>';
+    return;
+  }
+  days.forEach((d, i) => {
+    const isCollapsed = collapseState[i] || false;
+    const tagHtml = d.tag
+      ? `<span class="day-tag-pill ${d.tag.includes('prep') ? 'pill-prep' : 'pill-leftovers'}">${d.tag}</span>`
+      : '';
+    const isLocked = lockedDays[week + '_' + i];
+    const lockBtn = week === 'next'
+      ? `<button class="day-locked-icon ${isLocked ? 'locked' : ''}" onclick="event.stopPropagation();toggleLock('${week}',${i})" title="${isLocked ? 'Unlock day' : 'Lock day'}">${isLocked ? '🔒' : '🔓'}</button>`
+      : '';
+    const leftoverRow = d.leftoverDinner
+      ? `<div class="meal-row"><div class="meal-type-col">Dinner</div><div class="meal-name-col leftover-label">Leftovers</div><div class="meal-macro-col" style="color:var(--ink-muted)">—</div></div>`
+      : '';
+    const mealsHtml = (d.meals||[]).map(m =>
+      `<div class="meal-row${m.oneoff?' oneoff':''}">
+        <div class="meal-type-col">${m.type}</div>
+        <div class="meal-name-col">${m.name}</div>
+        <div class="meal-macro-col">
+          <span class="mc">${m.c}g C</span><br>
+          <span class="mf">${m.f}g F</span><br>
+          <span class="mp">${m.p}g P</span>
+        </div>
+      </div>`).join('');
+    const block = document.createElement('div');
+    block.className = 'day-block' + (isCollapsed ? ' collapsed' : '');
+    block.innerHTML = `
+      <div class="day-header" onclick="toggleDayCollapse('${week}',${i})">
+        <span class="day-name-label">${d.day}</span>${tagHtml}
+        ${lockBtn}
+        <span class="day-chevron" style="margin-left:${lockBtn?'0':'auto'}">▾</span>
+      </div>
+      <div class="day-meals">${mealsHtml}${leftoverRow}</div>`;
+    container.appendChild(block);
+  });
+}
+
+function toggleDayCollapse(week, i) {
+  const state = week === 'this' ? collapsedThis : collapsedNext;
+  state[i] = !state[i];
+  renderAll();
+}
+
+function toggleLock(week, i) {
+  const k = week + '_' + i;
+  lockedDays[k] = !lockedDays[k];
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════
+// GROCERY
+// ═══════════════════════════════════════════════════════
+function buildGrocerySection(data, gridId, checkedState) {
+  const grid = document.getElementById(gridId);
+  if (!data || data.length === 0) return;
+  grid.innerHTML = '';
+  data.forEach((cat, ci) => {
+    const card = document.createElement('div');
+    card.className = 'grocery-category';
+    const items = cat.items.map((item, ii) => {
+      const key = `${gridId}_${ci}_${ii}`;
+      const isChecked = checkedState[key] ? 'checked' : '';
+      return `<div class="grocery-item ${isChecked}" onclick="toggleGrocItem('${key}','${gridId}',this)">
+        <div class="item-check"><span class="item-check-icon">✓</span></div>
+        <div class="item-name">${item.name}</div>
+        <div class="item-amount">${item.amount}</div>
+      </div>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="category-header">
+        <span>${cat.icon}</span>${cat.category}
+        <span class="category-count">${cat.items.length}</span>
+      </div>${items}`;
+    grid.appendChild(card);
+  });
+}
+
+function toggleGrocItem(key, gridId, el) {
+  const state = gridId.includes('this') ? checkedThis : checkedNext;
+  state[key] = !state[key];
+  el.classList.toggle('checked', state[key]);
+}
+
+function clearChecked(week) {
+  if (week === 'this') { Object.keys(checkedThis).forEach(k => delete checkedThis[k]); }
+  else { Object.keys(checkedNext).forEach(k => delete checkedNext[k]); }
+  renderAll();
+}
+
+// ═══════════════════════════════════════════════════════
+// RECIPES
+// ═══════════════════════════════════════════════════════
+function buildRecipeGrid(recipes, gridId, cardClass) {
+  const grid = document.getElementById(gridId);
+  grid.innerHTML = '';
+  if (!recipes || recipes.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="padding:1rem"><p>No recipes yet.</p></div>';
+    return;
+  }
+  recipes.forEach(r => {
+    const isStarred = !!starredRecipes[r.name];
+    const card = document.createElement('div');
+    card.className = `recipe-card ${cardClass}`;
+    const starBtn = document.createElement('button');
+    starBtn.className = 'star-btn' + (isStarred ? ' starred' : '');
+    starBtn.textContent = isStarred ? '★' : '☆';
+    starBtn.title = isStarred ? 'Remove from favorites' : 'Save to favorites';
+    starBtn.onclick = e => { e.stopPropagation(); toggleStar(r); };
+    card.innerHTML = `
+      <div class="recipe-card-header">
+        <div class="recipe-tag">${r.tag||''}</div>
+        <div class="recipe-card-name">${r.name}</div>
+        <div class="recipe-macros">
+          <span class="recipe-macro rm-c">${r.macros.c}g C</span>
+          <span class="recipe-macro rm-f">${r.macros.f}g F</span>
+          <span class="recipe-macro rm-p">${r.macros.p}g P</span>
+        </div>
+      </div>
+      <div class="recipe-card-body">
+        <div class="recipe-meta">
+          <div class="recipe-meta-item"><strong>Serves</strong> ${r.serves}</div>
+          <div class="recipe-meta-item"><strong>Time</strong> ${r.time}</div>
+          <div class="recipe-meta-item"><strong>Difficulty</strong> ${r.difficulty}</div>
+        </div>
+        <div class="recipe-preview">${r.preview}</div>
+      </div>`;
+    card.insertBefore(starBtn, card.firstChild);
+    card.querySelector('.recipe-card-header').onclick = () => openRecipeModal(r);
+    card.querySelector('.recipe-card-body').onclick = () => openRecipeModal(r);
+    grid.appendChild(card);
+  });
+}
+
+function buildFavSection() {
+  const favs = Object.values(starredRecipes);
+  const section = document.getElementById('recipes-fav-section');
+  const grid = document.getElementById('recipes-grid-fav');
+  const chip = document.getElementById('fav-chip-count');
+  if (favs.length === 0) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  chip.textContent = favs.length + ' saved';
+  grid.innerHTML = '';
+  favs.forEach(r => {
+    const card = document.createElement('div');
+    card.className = 'recipe-card fav-card';
+    const starBtn = document.createElement('button');
+    starBtn.className = 'star-btn starred';
+    starBtn.textContent = '★';
+    starBtn.onclick = e => { e.stopPropagation(); toggleStar(r); };
+    card.innerHTML = `
+      <div class="fav-banner">Saved favorite</div>
+      <div class="recipe-card-header">
+        <div class="recipe-tag">${r.tag||''}</div>
+        <div class="recipe-card-name">${r.name}</div>
+        <div class="recipe-macros">
+          <span class="recipe-macro rm-c">${r.macros.c}g C</span>
+          <span class="recipe-macro rm-f">${r.macros.f}g F</span>
+          <span class="recipe-macro rm-p">${r.macros.p}g P</span>
+        </div>
+      </div>
+      <div class="recipe-card-body">
+        <div class="recipe-meta">
+          <div class="recipe-meta-item"><strong>Serves</strong> ${r.serves}</div>
+          <div class="recipe-meta-item"><strong>Time</strong> ${r.time}</div>
+          <div class="recipe-meta-item"><strong>Difficulty</strong> ${r.difficulty}</div>
+        </div>
+        <div class="recipe-preview">${r.preview}</div>
+      </div>`;
+    card.insertBefore(starBtn, card.firstChild);
+    card.querySelector('.recipe-card-header').onclick = () => openRecipeModal(r);
+    card.querySelector('.recipe-card-body').onclick = () => openRecipeModal(r);
+    grid.appendChild(card);
+  });
+}
+
+function toggleStar(r) {
+  if (starredRecipes[r.name]) { delete starredRecipes[r.name]; }
+  else { starredRecipes[r.name] = r; }
+  ls.set(SK.starred, starredRecipes);
+  renderAll();
+}
+
+function openRecipeModal(r) {
+  const content = document.getElementById('recipe-modal-content');
+  const dayBeforeSteps = (r.steps||[]).filter(s => s.dayBefore);
+  const regularSteps = (r.steps||[]).filter(s => !s.dayBefore);
+  const stepsHtml = s => Array.isArray(s)
+    ? s.map((step, n) => {
+        const text = typeof step === 'string' ? step : step.text;
+        const isDayBefore = typeof step === 'object' && step.dayBefore;
+        return `<li>
+          <div class="${isDayBefore ? 'step-day-before' : 'step-num'}">${isDayBefore ? 'D-1' : n+1}</div>
+          <div>${text}</div>
+        </li>`;
+      }).join('')
+    : '';
+  content.innerHTML = `
+    <button class="modal-close" onclick="document.getElementById('recipe-modal-backdrop').classList.remove('open')">×</button>
+    <div class="modal-header">
+      <div class="modal-tag">${r.tag||''}</div>
+      <div class="modal-title">${r.name}</div>
+      <div class="modal-macros">
+        <span class="modal-macro rm-c">${r.macros.c}g carbs</span>
+        <span class="modal-macro rm-f">${r.macros.f}g fat</span>
+        <span class="modal-macro rm-p">${r.macros.p}g protein</span>
+      </div>
+      <div class="modal-meta">
+        <div class="modal-meta-item"><strong>Serves:</strong> ${r.serves}</div>
+        <div class="modal-meta-item"><strong>Time:</strong> ${r.time}</div>
+        <div class="modal-meta-item"><strong>Difficulty:</strong> ${r.difficulty}</div>
+      </div>
+    </div>
+    <div class="modal-body">
+      ${r.portions && r.portions.length ? `
+        <div class="modal-section-title">Per portion — cooked weights (adults)</div>
+        <table class="portions-table">
+          ${r.portions.map(p=>`<tr><td class="pt-component">${p.component}</td><td class="pt-weight">${p.weight}</td><td class="pt-note">${p.note}</td></tr>`).join('')}
+        </table>` : ''}
+      ${dayBeforeSteps.length ? `
+        <div class="modal-section-title" style="color:var(--warm);border-bottom-color:var(--warm-light)">Day before</div>
+        <ol class="steps-list">${stepsHtml(dayBeforeSteps)}</ol>` : ''}
+      <div class="modal-section-title">Ingredients</div>
+      <ul class="ingredients-list">
+        ${(r.ingredients||[]).map(ing=>`<li><span class="ing-name">${ing.name}</span><span class="ing-amount">${ing.amount}</span></li>`).join('')}
+      </ul>
+      <div class="modal-section-title">Instructions</div>
+      <ol class="steps-list">${stepsHtml(r.steps||[])}</ol>
+      ${r.note ? `<div class="note-box">${r.note}</div>` : ''}
+    </div>`;
+  document.getElementById('recipe-modal-backdrop').classList.add('open');
+}
+
+function closeRecipeModal(e) {
+  if (e.target === document.getElementById('recipe-modal-backdrop'))
+    document.getElementById('recipe-modal-backdrop').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════════════
+// RULES TAB
+// ═══════════════════════════════════════════════════════
+function buildRulesTab() {
+  const grid = document.getElementById('rules-grid');
+  grid.innerHTML = '';
+  const cats = {};
+  HARDCODED_RULES.forEach(r => { (cats[r.cat] = cats[r.cat]||[]).push({...r, hardcoded:true}); });
+  customRules.forEach((r,i) => { (cats[r.cat||'Custom'] = cats[r.cat||'Custom']||[]).push({...r, idx:i}); });
+  Object.entries(cats).forEach(([cat, rules]) => {
+    const card = document.createElement('div');
+    card.className = 'rules-category';
+    card.innerHTML = `<div class="rules-category-header">${cat}</div>` +
+      rules.map(r => `
+        <div class="rule-item">
+          <span class="rule-icon">${r.icon||'📌'}</span>
+          <span class="rule-text">${r.text}</span>
+          <button class="rule-delete ${r.hardcoded?'hardcoded':''}" onclick="deleteCustomRule(${r.idx})" title="Remove rule">×</button>
+        </div>`).join('');
+    grid.appendChild(card);
+  });
+}
+
+function addCustomRule() {
+  const input = document.getElementById('new-rule-input');
+  const text = input.value.trim();
+  if (!text) return;
+  customRules.push({ cat:'Custom', icon:'📌', text });
+  ls.set(SK.customRules, customRules);
+  input.value = '';
+  buildRulesTab();
+}
+
+function deleteCustomRule(idx) {
+  customRules.splice(idx, 1);
+  ls.set(SK.customRules, customRules);
+  buildRulesTab();
+}
+
+function buildRulesString() {
+  const all = [...HARDCODED_RULES, ...customRules];
+  return all.map(r => `- ${r.text}`).join('\n');
+}
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════
+function openSettings() {
+  const key = ls.get(SK.apiKey);
+  const status = document.getElementById('key-status');
+  status.innerHTML = key
+    ? `<span style="color:var(--accent)">● Key saved</span>`
+    : `<span style="color:var(--ink-muted)">○ No key saved</span>`;
+  document.getElementById('api-key-input').value = key || '';
+  document.getElementById('settings-backdrop').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-backdrop').classList.remove('open'); }
+function closeSettingsOutside(e) { if (e.target === document.getElementById('settings-backdrop')) closeSettings(); }
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (val) { ls.set(SK.apiKey, val); openSettings(); }
+}
+function clearApiKey() { ls.del(SK.apiKey); openSettings(); }
+
+// ═══════════════════════════════════════════════════════
+// NEXT WEEK SAVE / PUSH
+// ═══════════════════════════════════════════════════════
+function saveNextWeek() {
+  if (!nextWeekPlanData) return;
+  ls.set(SK.nextWeekPlan, nextWeekPlanData);
+  ls.set(SK.nextWeekGroc, nextWeekGrocData);
+  ls.set(SK.nextWeekRec, nextWeekRecData);
+  ls.set(SK.nextOneoffs, nextWeekOneoffs);
+  nextWeekSaved = true;
+  ls.set(SK.nextWeekSaved, true);
+  updateNextWeekActions();
+}
+
+function confirmPush() {
+  if (!nextWeekSaved) return;
+  document.getElementById('confirm-backdrop').classList.add('open');
+}
+
+function executePush() {
+  document.getElementById('confirm-backdrop').classList.remove('open');
+  // Keep only starred recipes from this week
+  // (starred already persisted in starredRecipes)
+  // Replace this week with next week
+  thisWeekPlan = nextWeekPlanData;
+  thisWeekGroc = nextWeekGrocData;
+  thisWeekRec  = nextWeekRecData;
+  ls.set(SK.thisWeekPlan, thisWeekPlan);
+  ls.set(SK.thisWeekGroc, thisWeekGroc);
+  ls.set(SK.thisWeekRec,  thisWeekRec);
+  // Reset next week
+  nextWeekPlanData = null; nextWeekGrocData = null; nextWeekRecData = null;
+  nextWeekOneoffs = []; nextWeekSaved = false; chatHistory = []; previewPlan = null;
+  ls.del(SK.nextWeekPlan); ls.del(SK.nextWeekGroc); ls.del(SK.nextWeekRec);
+  ls.del(SK.nextOneoffs); ls.del(SK.nextWeekSaved); ls.del(SK.chatHistory);
+  updateNextWeekActions();
+  showPlanWeek('this', document.querySelector('.plan-week-tab'));
+  renderAll();
+}
+
+function updateNextWeekActions() {
+  const hasPlan = !!nextWeekPlanData;
+  document.getElementById('btn-save-plan').disabled = !hasPlan;
+  document.getElementById('btn-push-plan').disabled = !nextWeekSaved;
+  const dot = document.getElementById('save-dot');
+  const txt = document.getElementById('save-status-text');
+  dot.className = 'save-dot' + (nextWeekSaved ? ' saved' : '');
+  txt.textContent = nextWeekSaved ? 'Saved' : hasPlan ? 'Unsaved changes' : 'Not saved';
+}
+
+// ═══════════════════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════════════════
+function startChat() {
+  document.getElementById('chat-section').style.display = '';
+  if (chatHistory.length === 0) {
+    addChatMsg('ai', "Ready to build next week — what are you thinking, or should I suggest a plan? Also, will meal prep be Saturday or Sunday?");
+    chatHistory.push({ role:'assistant', content:"Ready to build next week — what are you thinking, or should I suggest a plan? Also, will meal prep be Saturday or Sunday?" });
+  } else {
+    renderChatHistory();
+  }
+  document.getElementById('chat-section').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function clearChat() {
+  chatHistory = []; ls.del(SK.chatHistory); previewPlan = null;
+  document.getElementById('chat-messages').innerHTML = '';
+  addChatMsg('ai', "Ready to build next week — what are you thinking, or should I suggest a plan? Also, will meal prep be Saturday or Sunday?");
+  chatHistory.push({ role:'assistant', content:"Ready to build next week — what are you thinking, or should I suggest a plan? Also, will meal prep be Saturday or Sunday?" });
+}
+
+function renderChatHistory() {
+  const container = document.getElementById('chat-messages');
+  container.innerHTML = '';
+  chatHistory.forEach(m => {
+    if (m.role === 'assistant') addChatMsg('ai', m.content, true);
+    else if (m.role === 'user') addChatMsg('user', m.content, true);
+  });
+}
+
+function addChatMsg(role, content, skipScroll) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${role}`;
+  div.innerHTML = `
+    <div class="chat-avatar">${role === 'ai' ? 'AI' : 'Me'}</div>
+    <div class="chat-bubble">${content}</div>`;
+  container.appendChild(div);
+  if (!skipScroll) container.scrollTop = container.scrollHeight;
+}
+
+function addPreviewToChat(planPreview) {
+  const container = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'chat-msg ai';
+  const rows = planPreview.days.map((d,i) => `
+    <div class="preview-plan-row">
+      <div class="preview-day">${d.day}</div>
+      <div class="preview-meals">
+        ${d.meals.map(m=>`<div class="preview-meal-line"><span class="meal-type-hint">${m.type}</span>${m.name}</div>`).join('')}
+        ${d.leftoverDinner ? `<div class="preview-meal-line"><span class="meal-type-hint">Dinner</span><em style="color:var(--ink-muted)">Leftovers</em></div>` : ''}
+      </div>
+      <button class="preview-lock-btn ${lockedDays['next_'+i]?'locked':''}" onclick="togglePreviewLock(${i},this)">${lockedDays['next_'+i]?'🔒 Locked':'🔓 Lock'}</button>
+    </div>`).join('');
+  const oneoffRows = (planPreview.oneoffs||[]).map(o => `
+    <div class="preview-plan-row" style="background:var(--warm-light)">
+      <div class="preview-day" style="color:var(--warm)">✦</div>
+      <div class="preview-meals"><div class="preview-meal-line"><span class="meal-type-hint" style="color:var(--warm)">1-off</span>${o.name}</div></div>
+      <div></div>
+    </div>`).join('');
+  div.innerHTML = `
+    <div class="chat-avatar">AI</div>
+    <div class="chat-bubble" style="max-width:95%;padding:0;overflow:hidden;background:transparent;border:none">
+      <div style="font-size:13px;color:var(--ink-soft);padding:9px 13px 6px">Here's next week's plan. Lock any days you want to keep, then tell me what to change or approve it to generate full recipes and grocery list.</div>
+      <div class="preview-plan">
+        <div class="preview-plan-header">
+          Next Week Preview
+          <span style="font-size:11px;color:var(--next-week-mid);font-weight:400">macros per meal shown below</span>
+        </div>
+        ${rows}${oneoffRows}
+      </div>
+      <div class="preview-actions">
+        <button class="btn btn-primary" onclick="approvePreview()" style="font-size:12px">✓ Approve — generate recipes & grocery list</button>
+        <button class="btn" onclick="regenPreview()" style="font-size:12px">↺ Regenerate</button>
+      </div>
+    </div>`;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+
+function togglePreviewLock(i, btn) {
+  const k = 'next_' + i;
+  lockedDays[k] = !lockedDays[k];
+  btn.className = 'preview-lock-btn' + (lockedDays[k] ? ' locked' : '');
+  btn.textContent = lockedDays[k] ? '🔒 Locked' : '🔓 Lock';
+}
+
+function chatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+  const apiKey = ls.get(SK.apiKey);
+  if (!apiKey) {
+    addChatMsg('ai', '⚠️ No API key found. Please add your Anthropic API key in Settings (⚙️).');
+    return;
+  }
+  input.value = '';
+  addChatMsg('user', msg);
+  chatHistory.push({ role:'user', content: msg });
+  ls.set(SK.chatHistory, chatHistory);
+  const sendBtn = document.getElementById('chat-send-btn');
+  sendBtn.disabled = true;
+  sendBtn.innerHTML = '<div class="spinner"></div>';
+
+  const lockedSummary = Object.entries(lockedDays)
+    .filter(([k,v]) => k.startsWith('next_') && v)
+    .map(([k]) => { const i = parseInt(k.replace('next_','')); return nextWeekPlanData ? nextWeekPlanData[i]?.day : i; })
+    .filter(Boolean).join(', ');
+
+  const systemPrompt = `You are a meal planning assistant for a family. Your job is to help plan the next week of meals following these strict rules:
+
+${buildRulesString()}
+${customRules.length ? '' : ''}
+
+When the user asks you to plan or suggest meals, respond with a JSON object wrapped in <PLAN>...</PLAN> tags containing:
+{
+  "message": "Your conversational response explaining the plan",
+  "days": [
+    { "day": "Mon", "tag": null, "leftoverDinner": false, "meals": [
+      { "type": "Lunch", "name": "...", "c": 28, "f": 10, "p": 42 },
+      { "type": "Dinner", "name": "...", "c": 25, "f": 11, "p": 44 }
+    ]},
+    ...all 7 days...
+  ],
+  "oneoffs": []
+}
+
+For leftover nights set leftoverDinner: true and only include lunch in meals array.
+Tag options: null, "leftovers", "prep + leftovers" (for Sunday if it is both).
+${lockedSummary ? `These days are LOCKED and must not be changed: ${lockedSummary}.` : ''}
+
+If the user is NOT asking to generate a full plan (e.g. asking a question, tweaking one meal, or chatting), respond conversationally WITHOUT a <PLAN> block. Only include <PLAN> when showing a full week plan.
+
+When the user approves a plan and asks for full recipes + grocery list, respond with a JSON object wrapped in <FULLPLAN>...</FULLPLAN> tags containing the complete data.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4000,
+        system: systemPrompt,
+        messages: chatHistory.map(m => ({ role: m.role, content: m.content })),
+      })
+    });
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message);
+    const reply = data.content[0].text;
+    chatHistory.push({ role:'assistant', content: reply });
+    ls.set(SK.chatHistory, chatHistory);
+
+    // Check for PLAN block
+    const planMatch = reply.match(/<PLAN>([\s\S]*?)<\/PLAN>/);
+    const fullMatch = reply.match(/<FULLPLAN>([\s\S]*?)<\/FULLPLAN>/);
+    const msgOnly = reply.replace(/<PLAN>[\s\S]*?<\/PLAN>/g,'').replace(/<FULLPLAN>[\s\S]*?<\/FULLPLAN>/g,'').trim();
+
+    if (fullMatch) {
+      try {
+        const full = JSON.parse(fullMatch[1]);
+        nextWeekPlanData = full.days;
+        nextWeekGrocData = full.grocery;
+        nextWeekRecData  = full.recipes;
+        nextWeekOneoffs  = full.oneoffs || [];
+        nextWeekSaved    = false;
+        updateNextWeekActions();
+        if (msgOnly) addChatMsg('ai', msgOnly + '<br><br><em style="font-size:12px;color:var(--accent)">✓ Plan generated! Review above, then Save when ready.</em>');
+        else addChatMsg('ai', '<em style="color:var(--accent)">✓ Full plan generated! Check the plan and recipes above, then Save when ready.</em>');
+        renderAll();
+      } catch(e) { addChatMsg('ai', "I had trouble formatting the full plan. " + (msgOnly||reply)); }
+    } else if (planMatch) {
+      try {
+        previewPlan = JSON.parse(planMatch[1]);
+        if (msgOnly) addChatMsg('ai', msgOnly);
+        addPreviewToChat(previewPlan);
+      } catch(e) { addChatMsg('ai', msgOnly || reply); }
+    } else {
+      addChatMsg('ai', reply);
+    }
+  } catch(err) {
+    addChatMsg('ai', `⚠️ Error: ${err.message}. Check your API key in Settings.`);
+  }
+  sendBtn.disabled = false;
+  sendBtn.textContent = 'Send';
+}
+
+function approvePreview() {
+  if (!previewPlan) return;
+  const input = document.getElementById('chat-input');
+  input.value = "Looks good! Please generate the full recipes with cooked portion weights and the grocery list now.";
+  sendChat();
+}
+
+function regenPreview() {
+  const input = document.getElementById('chat-input');
+  input.value = "Please regenerate the plan with some different options.";
+  sendChat();
+}
+
+// ═══════════════════════════════════════════════════════
+// RENDER ALL
+// ═══════════════════════════════════════════════════════
+function renderAll() {
+  // Plan
+  buildPlanDays(thisWeekPlan, 'plan-days-this', collapsedThis, 'this');
+  buildPlanDays(nextWeekPlanData || [], 'plan-days-next', collapsedNext, 'next');
+
+  // Next week one-offs in plan
+  const oneoffSection = document.getElementById('oneoff-next-section');
+  const oneoffContainer = document.getElementById('plan-oneoffs-next');
+  if (nextWeekOneoffs && nextWeekOneoffs.length > 0) {
+    oneoffSection.style.display = '';
+    oneoffContainer.innerHTML = nextWeekOneoffs.map(o => `
+      <div class="day-block">
+        <div class="day-meals">
+          <div class="meal-row oneoff">
+            <div class="meal-type-col">1-off</div>
+            <div class="meal-name-col">${o.name}</div>
+            <div class="meal-macro-col"><span class="mc">${o.c||'—'}g C</span><br><span class="mf">${o.f||'—'}g F</span><br><span class="mp">${o.p||'—'}g P</span></div>
+          </div>
+        </div>
+      </div>`).join('');
+  } else {
+    oneoffSection.style.display = 'none';
+  }
+
+  // Grocery
+  buildGrocerySection(thisWeekGroc, 'grocery-grid-this', checkedThis);
+  if (nextWeekGrocData && nextWeekGrocData.length > 0) {
+    document.getElementById('grocery-next-empty').style.display = 'none';
+    document.getElementById('grocery-grid-next').style.display = '';
+    buildGrocerySection(nextWeekGrocData, 'grocery-grid-next', checkedNext);
+  } else {
+    document.getElementById('grocery-next-empty').style.display = '';
+    document.getElementById('grocery-grid-next').style.display = 'none';
+  }
+
+  // Recipes
+  buildRecipeGrid(thisWeekRec, 'recipes-grid-this', 'this-week-card');
+  if (nextWeekRecData && nextWeekRecData.length > 0) {
+    document.getElementById('recipes-next-section').style.display = '';
+    buildRecipeGrid(nextWeekRecData, 'recipes-grid-next', 'next-week-card');
+  } else {
+    document.getElementById('recipes-next-section').style.display = 'none';
+  }
+  buildFavSection();
+
+  // Rules
+  buildRulesTab();
+  updateNextWeekActions();
+}
+
+// Init
+renderAll();
+</script>
+</body>
+</html>
